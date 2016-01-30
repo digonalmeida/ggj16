@@ -8,8 +8,10 @@ public class UnitController : MonoBehaviour {
     public float baseAttackRange;
     public float baseAttackRadius;
     public float baseChargingRate;
+    public float chargeStartingDistance; //so that the explosion area dont start under the unit itself
     public int maximumHP = 1;
     public int currentHP = 1;
+    public GameObject explosionArea;
     
     private float _modifierMovespeed = 1;
     private float _modifierShootingRange = 1;
@@ -26,6 +28,8 @@ public class UnitController : MonoBehaviour {
 	void Awake ()
     {
         _characterController = GetComponent<CharacterController>();
+        explosionArea.SetActive(false);
+        explosionArea.transform.localScale = new Vector3(1, 0, 1) * (baseAttackRadius * _modifierExplosionRadius);
 	}
 	
 	// Update is called once per frame
@@ -43,6 +47,14 @@ public class UnitController : MonoBehaviour {
         {
             transform.LookAt(transform.position + _inputMovementVector);
         }
+
+        //charge the attack
+        if (_chargingAttack)
+        {            
+            _currentChargedPercentage += baseChargingRate * Time.deltaTime;
+            if (_currentChargedPercentage > 1) _currentChargedPercentage = 1;
+            explosionArea.transform.position = transform.position + (transform.forward * (chargeStartingDistance + (baseAttackRange * _currentChargedPercentage)));
+        }
 	}
 
     public void UpdateMovementVector(Vector3 p_vector)
@@ -53,9 +65,24 @@ public class UnitController : MonoBehaviour {
     public void UpdateRotationVector(Vector3 p_vector)
     {
         _inputRotationVector = p_vector;
+        //If the input is null, it means could have been just released so we check that
+        //if the input is valid, we start charging our attack
         if(p_vector != Vector3.zero)
         {
             _chargingAttack = true;
+            explosionArea.SetActive(true);
         }
+        else if (_chargingAttack)
+        {
+            LaunchAttack();          
+            _chargingAttack = false;
+            explosionArea.SetActive(false);
+            _currentChargedPercentage = 0;
+        }
+    }
+
+    public void LaunchAttack()
+    {
+        Debug.Log(gameObject.name + ": I just attacked!");
     }
 }
